@@ -144,6 +144,17 @@ python -m app.cli \
 - `docs/EXPERIMENT.md`: prosedur benchmark dan rumus evaluasi.
 - `docs/LAPORAN-UAS.md`: kerangka laporan yang dapat dikembangkan.
 
+## Menggabungkan Hasil Eksperimen
+
+Setelah beberapa eksperimen selesai, buat satu tabel perbandingan dan grafik:
+
+```bash
+python scripts/aggregate_reports.py
+```
+
+Hasil tersedia di `reports/aggregate/comparison.csv`,
+`reports/aggregate/execution-time.png`, dan `reports/aggregate/throughput.png`.
+
 ## Catatan Lingkungan
 
 Pengembangan awal berjalan pada Ubuntu. Skrip `scripts/setup-almalinux.sh`

@@ -27,6 +27,15 @@ Untuk hasil yang lebih representatif, lakukan pengujian pada 100, 500, dan
 Setiap skenario sebaiknya diulang minimal tiga kali. Gunakan nilai rata-rata
 untuk mengurangi pengaruh proses latar belakang dan cache sistem.
 
+Setelah seluruh skenario selesai, gabungkan laporan:
+
+```bash
+python scripts/aggregate_reports.py
+```
+
+File `comparison.csv` berisi speedup dan efficiency otomatis dengan baseline
+mode sequential. Grafik PNG dapat langsung dimasukkan ke BAB IV.
+
 ## Perintah
 
 Baseline:
@@ -82,4 +91,3 @@ terlihat ketika beban komputasi lebih besar daripada overhead distribusi.
 Pada single node, jumlah worker yang melebihi jumlah CPU dapat menurunkan
 efisiensi akibat context switching dan perebutan resource. Temuan tersebut
 merupakan hasil eksperimen yang valid dan perlu dijelaskan dalam laporan.
-
