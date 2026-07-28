@@ -40,6 +40,7 @@ def add_table(document, headers, rows, widths=None):
     table = document.add_table(rows=1, cols=len(headers))
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.style = "Table Grid"
+    table.autofit = False
     for index, header in enumerate(headers):
         set_cell_text(table.rows[0].cells[index], header, bold=True, color=None, size=8)
         set_cell_shading(table.rows[0].cells[index], "D9EAF7")
@@ -51,6 +52,11 @@ def add_table(document, headers, rows, widths=None):
         for row in table.rows:
             for index, width in enumerate(widths):
                 row.cells[index].width = Cm(width)
+                properties = row.cells[index]._tc.get_or_add_tcPr()
+                cell_width = properties.first_child_found_in("w:tcW")
+                if cell_width is not None:
+                    cell_width.set(qn("w:w"), str(int(width * 567)))
+                    cell_width.set(qn("w:type"), "dxa")
     document.add_paragraph()
     return table
 
@@ -169,33 +175,11 @@ def main():
     institution.font.size = Pt(12)
     document.add_page_break()
 
-    add_heading(document, "LEMBAR PENGESAHAN", 1)
-    document.add_paragraph("Laporan UAS berjudul “Implementasi dan Analisis Kinerja Pemrosesan Citra Digital Paralel dan Terdistribusi Menggunakan Arsitektur Master-Worker” disusun oleh:")
-    add_table(document, ["Identitas", "Keterangan"], [["Nama", "Hadi Sanjaya"], ["NIM", "09011282328112"], ["Program Studi", "Sistem Komputer"], ["Fakultas", "Ilmu Komputer"], ["Universitas", "Universitas Sriwijaya"]], [5, 10])
-    document.add_paragraph("Telah diperiksa dan disetujui sebagai laporan tugas UAS Mata Kuliah Sistem Terdistribusi.")
-    document.add_paragraph("\nIndralaya, ................................ 2026\n\n\n\nDosen Pengampu,\n\n\n\n(................................................)\nNIP. ...........................................")
-    document.add_page_break()
-
     add_heading(document, "KATA PENGANTAR", 1)
     document.add_paragraph("Puji syukur penulis panjatkan kepada Tuhan Yang Maha Esa karena laporan UAS Sistem Terdistribusi ini dapat diselesaikan. Laporan ini membahas perancangan, implementasi, pengujian, dan analisis kinerja sistem pemrosesan citra digital paralel dan terdistribusi menggunakan Python, OpenCV, Celery, dan Redis pada Ubuntu Server.")
     document.add_paragraph("Penulis menyampaikan terima kasih kepada dosen pengampu Mata Kuliah Sistem Terdistribusi, Fakultas Ilmu Komputer Universitas Sriwijaya, atas arahan dan materi yang diberikan. Penulis menyadari laporan ini masih dapat dikembangkan, khususnya melalui pengujian pada beberapa node fisik dan dataset citra nyata yang lebih besar.")
     document.add_paragraph("Indralaya, Juli 2026\n\nPenulis,\n\n\nHadi Sanjaya")
     document.add_page_break()
-
-    add_heading(document, "Abstrak", 1)
-    document.add_paragraph(
-        "Pemrosesan citra dalam jumlah besar membutuhkan waktu komputasi yang cukup tinggi apabila dilakukan secara sequential. "
-        "Project ini mengimplementasikan sistem pemrosesan citra digital paralel dan terdistribusi menggunakan arsitektur master-worker. "
-        "Master membagi setiap gambar menjadi task, Redis digunakan sebagai message broker, dan Celery worker menjalankan pipeline OpenCV "
-        "berupa resize, grayscale, Gaussian blur, dan Canny edge detection. Pengujian dilakukan pada Ubuntu Server dengan dua CPU core "
-        "menggunakan dataset 300 gambar berukuran 1920x1080. Hasil terbaik diperoleh dengan dua worker, yaitu waktu 10,694 detik, "
-        "throughput 28,05 gambar per detik, speedup 1,21, dan efficiency 60,74%."
-    )
-    document.add_paragraph("Kata kunci: sistem terdistribusi, pemrosesan citra, OpenCV, Celery, Redis, master-worker.")
-
-    add_heading(document, "ABSTRACT", 1)
-    document.add_paragraph("Digital image processing in large batches requires significant computation time when executed sequentially. This project implements a parallel and distributed image-processing system using a master-worker architecture. The master submits one task for each image, Redis acts as the message broker and result backend, and Celery workers execute an OpenCV pipeline consisting of resize, grayscale conversion, Gaussian blur, and Canny edge detection. The experiment used 300 Full HD images on Ubuntu Server with two allocated CPU cores. The best two-worker execution completed in 10.694 seconds with a throughput of 28.05 images per second, a speedup of 1.21, and an efficiency of 60.74 percent. The results demonstrate measurable acceleration while also showing the effect of messaging, scheduling, I/O, and resource-contention overhead.")
-    document.add_paragraph("Keywords: distributed system, image processing, OpenCV, Celery, Redis, master-worker.")
 
     add_heading(document, "Daftar Isi", 1)
     document.add_paragraph("Pada Microsoft Word, klik kanan bagian ini lalu pilih Update Field untuk memperbarui daftar isi otomatis.")
@@ -285,7 +269,7 @@ def main():
 
     add_heading(document, "BAB IV IMPLEMENTASI DAN PENGUJIAN", 1)
     add_heading(document, "4.1 Lingkungan Pengujian", 2)
-    add_table(document, ["Komponen", "Spesifikasi"], [["OS", "Ubuntu 24.04.4 LTS"], ["CPU", "AMD EPYC 7K62, 2 core dialokasikan"], ["RAM", "1,9 GiB"], ["Swap", "1,9 GiB"], ["Dataset", "300 gambar, 1920x1080"], ["Worker", "2 proses, concurrency 1"]], [5, 10])
+    add_table(document, ["Komponen", "Spesifikasi"], [["OS", "Ubuntu 24.04.4 LTS"], ["CPU", "AMD EPYC 7K62, 2 core dialokasikan"], ["RAM", "1,9 GiB"], ["Swap", "1,9 GiB"], ["Dataset", "300 gambar, 1920x1080"], ["Worker", "2 proses, concurrency 1"]], [4.2, 9.8])
     add_heading(document, "4.2 Perintah Pengujian", 2)
     document.add_paragraph("Instalasi dan eksekusi utama dilakukan dengan perintah berikut:")
     for command in ["./scripts/setup-ubuntu.sh", "redis-cli ping", "./scripts/start_worker.sh worker1 1", "./scripts/start_worker.sh worker2 1", "python -m app.cli --mode sequential --workers 1", "python -m app.cli --mode distributed --workers 2 --timeout 3600", "python scripts/aggregate_reports.py"]:
@@ -301,7 +285,7 @@ def main():
     table_rows = []
     for row in rows_300:
         table_rows.append([row["mode"], row["workers"], row["wall_time_seconds"][:6], row["throughput_images_per_second"][:6], row["speedup"][:6], row["efficiency_percent"][:6] + "%"])
-    add_table(document, ["Mode", "Worker", "Waktu (s)", "Throughput", "Speedup", "Efficiency"], table_rows, [3.5, 2, 3, 4, 3, 3])
+    add_table(document, ["Mode", "Worker", "Waktu (s)", "Throughput", "Speedup", "Efficiency"], table_rows, [2.8, 1.5, 2.2, 3.0, 2.0, 2.5])
     document.add_paragraph(f"Hasil terbaik adalah distributed dengan dua worker, waktu {best['wall_time_seconds']} detik, throughput {best['throughput_images_per_second']} gambar/detik, speedup {best['speedup']}, dan efficiency {best['efficiency_percent']}%.")
     add_heading(document, "4.6 Grafik Hasil", 2)
     for image, caption in [("execution-time.png", "Gambar 1. Perbandingan waktu eksekusi"), ("throughput.png", "Gambar 2. Perbandingan throughput")]:
@@ -324,8 +308,18 @@ def main():
         add_bullet(document, text)
 
     add_heading(document, "DAFTAR PUSTAKA", 1)
-    for text in ["OpenCV Documentation. Image Processing Module. https://docs.opencv.org/", "Celery Documentation. Distributed Task Queue. https://docs.celeryq.dev/", "Redis Documentation. In-memory Data Store. https://redis.io/docs/", "Universitas Sriwijaya. Pedoman Umum Penulisan Karya Tulis Ilmiah. https://unsri.ac.id/", "Repository project. https://github.com/zenttzy/sistem-terdistribusi-image-processing"]:
-        document.add_paragraph(text)
+    references = [
+        "Celery Project. 2025. Celery Documentation: Distributed Task Queue. Tersedia pada: https://docs.celeryq.dev/. Diakses 28 Juli 2026.",
+        "OpenCV Team. 2025. OpenCV Documentation: Image Processing and Canny Edge Detection. Tersedia pada: https://docs.opencv.org/. Diakses 28 Juli 2026.",
+        "Redis Ltd. 2026. Redis Documentation. Tersedia pada: https://redis.io/docs/latest/. Diakses 28 Juli 2026.",
+        "Sanjaya, H. 2026. Sistem Terdistribusi Image Processing: Source Code dan Dokumentasi Eksperimen. GitHub. Tersedia pada: https://github.com/zenttzy/sistem-terdistribusi-image-processing. Diakses 28 Juli 2026.",
+        "Universitas Sriwijaya. Tanpa Tahun. Pedoman Umum Penulisan Karya Tulis Ilmiah Universitas Sriwijaya. Palembang: Universitas Sriwijaya. Tersedia pada: https://unsri.ac.id/. Diakses 28 Juli 2026.",
+    ]
+    for index, text in enumerate(sorted(references), 1):
+        paragraph = document.add_paragraph()
+        paragraph.paragraph_format.first_line_indent = Cm(-1)
+        paragraph.paragraph_format.left_indent = Cm(1)
+        paragraph.add_run(f"{index}. {text}")
 
     document.add_heading("LAMPIRAN A — Struktur Project", level=1)
     document.add_paragraph("Repository: https://github.com/zenttzy/sistem-terdistribusi-image-processing")
