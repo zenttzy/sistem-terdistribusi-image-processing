@@ -1,0 +1,174 @@
+DOKUMENTASI HASIL PENGUJIAN
+DISTRIBUTED IMAGE PROCESSING
+========================================
+
+Repository:
+https://github.com/zenttzy/sistem-terdistribusi-image-processing
+
+Tanggal pengujian:
+28 Juli 2026
+
+1. LINGKUNGAN PENGUJIAN
+------------------------
+Operating System : Ubuntu 24.04.4 LTS
+CPU              : AMD EPYC 7K62 48-Core Processor
+CPU yang dipakai : 2 core
+RAM              : 1.9 GiB
+Swap             : 1.9 GiB
+Bahasa           : Python 3.12
+Message Broker   : Redis
+Task Queue       : Celery
+Image Processing : OpenCV
+
+Command pemeriksaan:
+
+cat /etc/os-release
+nproc
+free -h
+redis-cli ping
+
+Output penting:
+
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+2
+Mem: 1.9Gi
+Swap: 1.9Gi
+PONG
+
+2. ARSITEKTUR PENGUJIAN
+------------------------
+Master CLI mengirim task pemrosesan gambar ke Redis.
+Celery Worker 1 dan Worker 2 mengambil task dari Redis.
+Setiap gambar diproses menggunakan OpenCV.
+Hasil gambar disimpan di direktori output.
+Master membuat summary.json dan task-results.csv.
+
+Topologi proses:
+
+Master CLI -> Redis -> Worker 1
+                    -> Worker 2
+
+Command menjalankan worker:
+
+./scripts/start_worker.sh worker1 1
+./scripts/start_worker.sh worker2 1
+
+Command memeriksa worker:
+
+celery -A app.celery_app:celery_app status
+
+Output yang berhasil diperoleh:
+
+worker1@VM-13-74-ubuntu: OK
+worker2@VM-13-74-ubuntu: OK
+2 nodes online.
+
+3. PIPELINE PEMROSESAN CITRA
+----------------------------
+1. Membaca gambar dari dataset.
+2. Resize gambar.
+3. Konversi gambar menjadi grayscale.
+4. Gaussian blur untuk mengurangi noise.
+5. Canny edge detection.
+6. Menyimpan hasil sebagai file PNG.
+7. Mengirim metadata hasil dan durasi ke master.
+
+4. COMMAND PENGUJIAN
+---------------------
+Membuat dataset 300 gambar berukuran 1920x1080:
+
+python scripts/generate_dataset.py --count 300 --width 1920 --height 1080
+
+Sequential:
+
+python -m app.cli --mode sequential --workers 1
+
+Distributed dengan dua worker:
+
+python -m app.cli --mode distributed --workers 2 --timeout 3600
+
+Membuat tabel dan grafik:
+
+python scripts/aggregate_reports.py
+
+5. HASIL EKSPERIMEN 300 GAMBAR
+------------------------------
+Seluruh skenario berhasil memproses 300 dari 300 gambar.
+Tidak terdapat task yang gagal.
+
++--------------+---------+-------------+----------------------+---------+-------------+
+| Mode         | Worker  | Waktu (s)   | Throughput           | Speedup | Efficiency  |
++--------------+---------+-------------+----------------------+---------+-------------+
+| Sequential   | 1       | 12.991      | 23.09 gambar/detik   | 1.00    | 100.00%     |
+| Distributed  | 2       | 12.299      | 24.39 gambar/detik   | 1.06    | 52.82%      |
+| Distributed  | 2       | 10.694      | 28.05 gambar/detik   | 1.21    | 60.74%      |
++--------------+---------+-------------+----------------------+---------+-------------+
+
+Hasil distributed terbaik:
+
+Waktu              : 10.694 detik
+Throughput         : 28.05 gambar/detik
+Speedup             : 1.21
+Efficiency          : 60.74%
+Jumlah berhasil     : 300 gambar
+Jumlah gagal        : 0 gambar
+
+6. INTERPRETASI HASIL
+----------------------
+Pemrosesan distributed dengan dua worker menghasilkan waktu tercepat,
+yaitu 10.694 detik. Dibandingkan baseline sequential 12.991 detik,
+terjadi peningkatan performa sekitar 17.68%.
+
+Speedup belum mencapai 2.00 walaupun digunakan dua worker. Penyebabnya
+adalah server hanya memiliki dua CPU core, serta terdapat overhead dari:
+
+- pengiriman task melalui Redis;
+- serialisasi dan deserialisasi data;
+- penjadwalan Celery;
+- operasi baca dan tulis file gambar;
+- proses latar belakang server.
+
+Hasil ini menunjukkan bahwa penambahan worker tidak selalu menghasilkan
+percepatan linear, khususnya ketika seluruh worker masih berada pada satu
+node fisik dengan resource terbatas.
+
+7. LOKASI HASIL
+----------------
+Ringkasan eksperimen:
+reports/<experiment-id>/summary.json
+
+Detail setiap task:
+reports/<experiment-id>/task-results.csv
+
+Tabel perbandingan:
+reports/aggregate/comparison.csv
+
+Grafik waktu eksekusi:
+reports/aggregate/execution-time.png
+
+Grafik throughput:
+reports/aggregate/throughput.png
+
+8. SCREENSHOT YANG DISARANKAN
+-----------------------------
+1. Output cat /etc/os-release, nproc, dan free -h.
+2. Output redis-cli ping dengan hasil PONG.
+3. Output celery status yang menampilkan dua worker online.
+4. Terminal Worker 1 saat menerima task.
+5. Terminal Worker 2 saat menerima task.
+6. Terminal master saat menjalankan pemrosesan distributed.
+7. Terminal top saat proses berjalan.
+8. Output summary.json.
+9. Output comparison.csv.
+10. Gambar input dan gambar hasil edge detection.
+
+9. KESIMPULAN
+-------------
+Sistem berhasil mengimplementasikan pemrosesan citra digital dengan
+arsitektur master-worker menggunakan Redis dan Celery. Task gambar dapat
+dibagikan kepada dua worker dan seluruh 300 gambar berhasil diproses.
+
+Pada pengujian ini, konfigurasi distributed dua worker memberikan hasil
+terbaik dengan speedup 1.21 dan efficiency 60.74%. Sistem dapat dikembangkan
+lebih lanjut menggunakan beberapa server fisik, shared storage, dashboard
+monitoring, atau pemrosesan GPU.
